@@ -1,27 +1,42 @@
+-- ส่วนสำหรับส่งข้อมูลอัพสถานะ
+local args = {
+    [1] = "Melee",
+    [2] = 1
+}
 
-local StatusRemote = game:GetService("ReplicatedStorage").Remote.Event.CommE_
+game:GetService("ReplicatedStorage").Remotes.UpStats:FireServer(unpack(args))
 
-local function IncreaseStats(amount)
-    local originalPoints = 0
+-- ส่วนสำหรับทำให้ไม่เสียคะแนน
+if not _G.XYLONOPOINTLOSING then
+    _G.XYLONOPOINTLOSING = true
 
-    local originalFireServer = StatusRemote.FireServer
-    StatusRemote.FireServer = newcclosure(function(remote, ...)
-        local args = {...}
-        local method = getnamecallmethod()
+    local StatusIncreaseAmount = 0
+    local RemoteEvent = game:GetService("ReplicatedStorage").Remotes.UpStats
 
-        if not checkcaller() and method == "FireServer" and remote == StatusRemote then
-            if args[1] == "Add Stats" then
-                originalPoints = tonumber(args[3]) or 0
-                args[3] = tostring(amount)
-            end
+    local function FireServerWithoutLosingPoints(...)
+        local args = { ... }
+        
+        if args[1] >= 1 and args[1] <= 150 then
+            StatusIncreaseAmount = args[1]
+        elseif args[1] >= 1 and args[1] > 150 then
+            StatusIncreaseAmount = 150
         end
+        
+        args[1] = 0
+        
+        for i = 1, StatusIncreaseAmount do
+            RemoteEvent:FireServer(unpack(args))
+            wait(0.5)
+        end
+    end
 
-        return originalFireServer(remote, unpack(args))
-    end)
+    -- แทนที่ RemoteEvent:FireServer ด้วยฟังก์ชันที่ไม่เสียคะแนน
+    local oldFireServer = RemoteEvent.FireServer
+    RemoteEvent.FireServer = function(self, ...)
+        if self == RemoteEvent then
+            FireServerWithoutLosingPoints(...)
+        else
+            return oldFireServer(self, ...)
+        end
+    end
 end
-
-IncreaseStats(0)  -- Set the amount you want to increase
-
--- Example usage:
--- To increase stats without losing points
-StatusRemote:FireServer("Add Stats", "Strength", "1")
