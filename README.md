@@ -1,14 +1,27 @@
-local args = {
-    [1] = "Add Stats",
-    [2] = "Strength",
-    [3] = 1,
-}
 
-local StatusIncreaseAmount = math.min(args[3], 150)
+local StatusRemote = game:GetService("ReplicatedStorage").Remote.Event.CommE_
 
-game:GetService("ReplicatedStorage").Remote.Event.CommE_:FireServer(unpack(args))
+local function IncreaseStats(amount)
+    local originalPoints = 0
 
-for i = 1, StatusIncreaseAmount do
-    wait(0.5)
-    game:GetService("ReplicatedStorage").Remote.Event.CommE_:FireServer("Add Stats", "Strength", 1)
+    local originalFireServer = StatusRemote.FireServer
+    StatusRemote.FireServer = newcclosure(function(remote, ...)
+        local args = {...}
+        local method = getnamecallmethod()
+
+        if not checkcaller() and method == "FireServer" and remote == StatusRemote then
+            if args[1] == "Add Stats" then
+                originalPoints = tonumber(args[3]) or 0
+                args[3] = tostring(amount)
+            end
+        end
+
+        return originalFireServer(remote, unpack(args))
+    end)
 end
+
+IncreaseStats(0)  -- Set the amount you want to increase
+
+-- Example usage:
+-- To increase stats without losing points
+StatusRemote:FireServer("Add Stats", "Strength", "1")
